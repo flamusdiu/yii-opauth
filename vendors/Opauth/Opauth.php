@@ -8,13 +8,6 @@
  * @package      Opauth
  * @license      MIT License
  */
-
-/**
- * Opauth
- * Multi-provider authentication framework for PHP
- * 
- * @package			Opauth
- */
 class Opauth {
 	/**
 	 * User configuraable settings
@@ -70,9 +63,7 @@ class Opauth {
 			'strategy_dir' => dirname(__FILE__).'/Strategy/'
 		), $this->config);
 		
-		if (!class_exists('OpauthStrategy')) {
-			require $this->env['lib_dir'].'OpauthStrategy.php';
-		}
+		require $this->env['lib_dir'].'OpauthStrategy.php';
 		
 		foreach ($this->env as $key => $value) {
 			$this->env[$key] = OpauthStrategy::envReplace($value, $this->env);
@@ -275,38 +266,38 @@ class Opauth {
 	 * @return string Class name of the strategy, usually StrategyStrategy
 	 */
 	private function requireStrategy($strategy) {
-		if (!class_exists($strategy.'Strategy')) {
-			// Include dir where Git repository for strategy is cloned directly without 
-			// specifying a dir name, eg. opauth-facebook
-			$directories = array(
-				$this->env['strategy_dir'].$strategy.'/',
-				$this->env['strategy_dir'].'opauth-'.strtolower($strategy).'/',
-				$this->env['strategy_dir'].strtolower($strategy).'/',
-				$this->env['strategy_dir'].'Opauth-'.$strategy.'/'
-			);
-			
-			// Include deprecated support for strategies without Strategy postfix as class name or filename
-			$classNames = array(
-				$strategy.'Strategy',
-				$strategy
-			);
-			
-			$found = false;
-			foreach ($directories as $dir) {
-				foreach ($classNames as $name) {
-					if (file_exists($dir.$name.'.php')) {
-						$found = true;
-						require $dir.$name.'.php';
-						return $name;
-					}
+
+		// Include dir where Git repository for strategy is cloned directly without 
+		// specifying a dir name, eg. opauth-facebook
+		$directories = array(
+			$this->env['strategy_dir'].$strategy.'/',
+			$this->env['strategy_dir'].'opauth-'.strtolower($strategy).'/',
+			$this->env['strategy_dir'].strtolower($strategy).'/',
+			$this->env['strategy_dir'].'Opauth-'.$strategy.'/'
+		);
+		
+		// Include deprecated support for strategies without Strategy postfix as class name or filename
+		$classNames = array(
+			$strategy.'Strategy',
+			$strategy
+		);
+		
+		$found = false;
+		foreach ($directories as $dir) {
+			foreach ($classNames as $name) {
+				if (file_exists($dir.$name.'.php')) {
+					$found = true;
+					require $dir.$name.'.php';
+					return $name;
 				}
 			}
-			
-			if (!$found) {
-				trigger_error('Strategy class file ('.$this->env['strategy_dir'].$strategy.'/'.$strategy.'Strategy.php'.') is missing', E_USER_ERROR);
-			}
 		}
-		return $strategy.'Strategy';
+		
+		if (!$found) {
+			trigger_error('Strategy class file ('.$this->env['strategy_dir'].$strategy.'/'.$strategy.'Strategy.php'.') is missing', E_USER_ERROR);
+		}
+	
+	return $strategy.'Strategy';
 	}
 	
 	/**
