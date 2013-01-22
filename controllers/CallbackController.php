@@ -2,22 +2,28 @@
 
 class CallbackController extends Controller {
 
-	public $defaultAction = 'validate';
-	private $_opauth;
-	
-	public function actionValidate() {
-		if ( $this->module->opauthParams ) {
-			
+	public $defaultAction = 'callback';
+
+	public function actionCallBack() {
+		if ( $this->module->getConfig() ) {
+
 			/**
 			 * Instantiate Opauth with the loaded config but no run automatically
+			 * Only create Opauth if one is not already there
 			 */
-			$Opauth = new Opauth($this->module->opauthParams, false);
-			
+			if (!$this->module->getOpauth()) {
+				$this->module->setOpauth (new Opauth($this->module->getConfig(), false));
+				$Opauth = $this->module->getOpauth();
+			} else {
+				$Opauth = $this->module->getOpauth();
+			}
+
+
 			/**
 			 * Fetch auth response, based on transport configuration for callback
 			 */
 			$response = null;
-			
+
 			switch($Opauth->env['callback_transport']) {
 				case 'session':
 					session_start();
@@ -37,7 +43,7 @@ class CallbackController extends Controller {
 
 			/**
 			 * Check if it's an error callback
-			 */
+			*/
 			if (array_key_exists('error', $response)) {
 				echo '<strong style="color: red;">Authentication error: </strong> Opauth returns error auth response.'."<br>\n";
 			}
@@ -59,8 +65,22 @@ class CallbackController extends Controller {
 					/**
 					 * It's all good. Go ahead with your application-specific authentication logic
 					 */
-					
-					$this->redirect(Yii::app()->getModule('user')->returnUrl);
+
+					$identity = new UserIdentity($response);
+					$identity->authenticate();
+
+					switch($identity->errorCode) {
+						case $identity::ERROR_NONE:
+							Yii::app()->user->login($identity);
+							echo "<pre>".print_r(Yii::app()->user->isAdmin(),true)."</pre>";
+							//$this->redirect(Yii::app()->getModule('user')->profileUrl);
+							break;
+						case $identity::ERROR_USERNAME_INVALID:
+							$this->redirect(Yii::app()->getModule('user')->registrationUrl);
+							break;
+						default:
+							throw new CException ($identity->errorCode);
+					}
 				}
 			}
 		} else {
