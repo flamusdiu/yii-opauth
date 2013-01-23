@@ -66,16 +66,15 @@ class CallbackController extends Controller {
 					 * It's all good. Go ahead with your application-specific authentication logic
 					 */
 
-					$identity = new UserIdentity($response);
+					$identity = new UserIdentity($response['auth']['info']);
 					$identity->authenticate();
-
+					
 					switch($identity->errorCode) {
-						case $identity::ERROR_NONE:
+						case UserIdentity::ERROR_NONE:
 							Yii::app()->user->login($identity);
-							echo "<pre>".print_r(Yii::app()->user->isAdmin(),true)."</pre>";
-							//$this->redirect(Yii::app()->getModule('user')->profileUrl);
+							$this->redirect(Yii::app()->getModule('user')->profileUrl);
 							break;
-						case $identity::ERROR_USERNAME_INVALID:
+						case UserIdentity::ERROR_USERNAME_INVALID:
 							$this->redirect(Yii::app()->getModule('user')->registrationUrl);
 							break;
 						default:
